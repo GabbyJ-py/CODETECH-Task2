@@ -1,0 +1,186 @@
+##Inventory Management System
+This Python application uses tkinter for a graphical user interface to manage an inventory system. 
+###It allows users to:
+Authenticate: Log in with a username and password.
+Manage Products: Add, edit, and delete products from the inventory.
+Generate Reports: View a detailed report of the current inventory.
+Low Stock Alerts: Get alerts for products that fall below a specified stock threshold.
+
+
+
+import tkinter as tk
+from tkinter import messagebox, simpledialog , PhotoImage
+import json
+import os
+
+# File to store user data and inventory
+USER_FILE = 'users.json'
+INVENTORY_FILE = 'inventory.json'
+
+# Helper functions
+def load_data(filename, default_data=None):
+    if os.path.exists(filename):
+        with open(filename, 'r') as file:
+            return json.load(file)
+    return default_data if default_data is not None else {}
+
+def save_data(filename, data):
+    with open(filename, 'w') as file:
+        json.dump(data, file, indent=4)
+
+class InventorySystem:
+    def __init__(self):
+        self.inventory = load_data(INVENTORY_FILE, {})
+        self.users = load_data(USER_FILE, {"admin": {"password": "admin"}})  # Default admin
+
+    def add_product(self, name, quantity, price):
+        if name in self.inventory:
+            return False
+        self.inventory[name] = {"quantity": quantity, "price": price}
+        save_data(INVENTORY_FILE, self.inventory)
+        return True
+
+    def edit_product(self, name, quantity, price):
+        if name not in self.inventory:
+            return False
+        self.inventory[name] = {"quantity": quantity, "price": price}
+        save_data(INVENTORY_FILE, self.inventory)
+        return True
+
+    def delete_product(self, name):
+        if name not in self.inventory:
+            return False
+        del self.inventory[name]
+        save_data(INVENTORY_FILE, self.inventory)
+        return True
+
+    def get_low_stock_alert(self, threshold):
+        low_stock = {name: details for name, details in self.inventory.items() if details["quantity"] < threshold}
+        return low_stock
+
+    def generate_report(self):
+        return self.inventory
+
+    def authenticate_user(self, username, password):
+        user = self.users.get(username)
+        if user and user.get("password") == password:
+            return True
+        return False
+
+    def add_user(self, username, password):
+        if username in self.users:
+            return False
+        self.users[username] = {"password": password}
+        save_data(USER_FILE, self.users)
+        return True
+
+class InventoryGUI:
+    def __init__(self, root, system):
+        self.system = system
+        self.root = root
+        self.root.title("Inventory Management System")
+        self.root.configure(bg='#035e4b')
+        self.root.geometry("400x200")
+
+        font_settings = ("Times New Roman", 12)
+
+        self.icon = PhotoImage(file='pyprjicon3.png')
+        self.root.iconphoto(True, self.icon)
+
+        # Authentication frame
+        self.auth_frame = tk.Frame(root, bg='#035e4b')
+        self.auth_frame.pack(pady=20)
+
+        self.username_label = tk.Label(self.auth_frame, text="Username:", bg='#035e4b', fg='white', font=font_settings)
+        self.username_label.grid(row=0, column=0, padx=10)
+        self.username_entry = tk.Entry(self.auth_frame, font=font_settings)
+        self.username_entry.grid(row=0, column=1, padx=10)
+
+        self.password_label = tk.Label(self.auth_frame, text="Password:", bg='#035e4b', fg='white', font=font_settings)
+        self.password_label.grid(row=1, column=0, padx=10)
+        self.password_entry = tk.Entry(self.auth_frame, show='*', font=font_settings)
+        self.password_entry.grid(row=1, column=1, padx=10)
+
+        self.login_button = tk.Button(self.auth_frame, text="Login", command=self.login, bg='#1f8a70', fg='white', font=font_settings)
+        self.login_button.grid(row=2, columnspan=2, pady=10)
+
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        if self.system.authenticate_user(username, password):
+            self.auth_frame.pack_forget()
+            self.show_main_interface()
+        else:
+            messagebox.showerror("Error", "Invalid username or password")
+
+    def show_main_interface(self):
+        self.main_frame = tk.Frame(self.root, bg='#035e4b')
+        self.main_frame.pack(pady=20)
+
+        font_settings = ("Times New Roman", 12)
+
+        self.add_product_button = tk.Button(self.main_frame, text="Add Product", command=self.add_product, bg='#1f8a70', fg='white', font=font_settings)
+        self.add_product_button.grid(row=0, column=0, padx=10)
+
+        self.edit_product_button = tk.Button(self.main_frame, text="Edit Product", command=self.edit_product, bg='#1f8a70', fg='white', font=font_settings)
+        self.edit_product_button.grid(row=0, column=1, padx=10)
+
+        self.delete_product_button = tk.Button(self.main_frame, text="Delete Product", command=self.delete_product, bg='#1f8a70', fg='white', font=font_settings)
+        self.delete_product_button.grid(row=0, column=2, padx=10)
+
+        self.report_button = tk.Button(self.main_frame, text="Generate Report", command=self.generate_report, bg='#1f8a70', fg='white', font=font_settings)
+        self.report_button.grid(row=1, column=0, columnspan=3, pady=10)
+
+        self.low_stock_button = tk.Button(self.main_frame, text="Low Stock Alert", command=self.low_stock_alert, bg='#1f8a70', fg='white', font=font_settings)
+        self.low_stock_button.grid(row=2, column=0, columnspan=3, pady=10)
+
+    def add_product(self):
+        name = simpledialog.askstring("Input", "Enter product name:")
+        quantity = simpledialog.askinteger("Input", "Enter quantity:")
+        price = simpledialog.askfloat("Input", "Enter price:")
+        if name and quantity is not None and price is not None:
+            if self.system.add_product(name, quantity, price):
+                messagebox.showinfo("Success", "Product added successfully!")
+            else:
+                messagebox.showerror("Error", "Product already exists")
+
+    def edit_product(self):
+        name = simpledialog.askstring("Input", "Enter product name to edit:")
+        if name in self.system.inventory:
+            quantity = simpledialog.askinteger("Input", "Enter new quantity:")
+            price = simpledialog.askfloat("Input", "Enter new price:")
+            if quantity is not None and price is not None:
+                if self.system.edit_product(name, quantity, price):
+                    messagebox.showinfo("Success", "Product updated successfully!")
+                else:
+                    messagebox.showerror("Error", "Failed to update product")
+        else:
+            messagebox.showerror("Error", "Product not found")
+
+    def delete_product(self):
+        name = simpledialog.askstring("Input", "Enter product name to delete:")
+        if self.system.delete_product(name):
+            messagebox.showinfo("Success", "Product deleted successfully!")
+        else:
+            messagebox.showerror("Error", "Product not found")
+
+    def generate_report(self):
+        report = self.system.generate_report()
+        report_text = "\n".join([f"{name}: {details}" for name, details in report.items()])
+        messagebox.showinfo("Inventory Report", report_text)
+
+    def low_stock_alert(self):
+        threshold = simpledialog.askinteger("Input", "Enter low stock threshold:")
+        if threshold is not None:
+            low_stock = self.system.get_low_stock_alert(threshold)
+            if low_stock:
+                alert_text = "\n".join([f"{name}: {details}" for name, details in low_stock.items()])
+                messagebox.showinfo("Low Stock Alert", alert_text)
+            else:
+                messagebox.showinfo("Low Stock Alert", "No products below the threshold")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    inventory_system = InventorySystem()
+    app = InventoryGUI(root, inventory_system)
+    root.mainloop()
