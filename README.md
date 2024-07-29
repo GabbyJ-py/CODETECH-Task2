@@ -18,7 +18,7 @@ It also includes user authentication and low stock alerts.
     - **Delete Product:** Remove products from the inventory.
     - **Inventory Reports:** Generate a detailed report of all products in the inventory.
     - **Low Stock Alerts:** Alert users when products fall below a specified stock threshold.
-    - 
+      
 ### Files
 - **users.json:** Stores user credentials.
 - **inventory.json:** Stores product details including name, quantity, and price.
